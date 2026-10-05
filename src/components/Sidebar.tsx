@@ -1,0 +1,289 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ * 
+ * Streamlined & Modern Sidebar Navigation
+ * Clean, uncluttered, role-aware, and highly responsive.
+ */
+
+import React, { useEffect, useRef } from 'react';
+import { LifeBuoy, LayoutDashboard, 
+  FileSpreadsheet, 
+  Briefcase, 
+  Users, 
+  ClipboardCheck, 
+  Scale, 
+  TrendingUp, 
+  ShieldCheck,
+  Sun,
+  Moon,
+  LogOut,
+  Award,
+  BookOpen,
+  HelpCircle,
+  X,
+  LockKeyhole,
+  GitFork,
+  Calculator,
+  Target,
+  Monitor,
+  Printer,
+  FileText
+} from 'lucide-react';
+import { Employee, UserRole } from '../types';
+import { visibleNavigation } from '../utils/navigation';
+
+interface SidebarProps {
+  currentTab: string;
+  onChangeTab: (tab: string) => void;
+  currentUser: Employee;
+  onLogout: () => void;
+  theme: 'dark' | 'light';
+  themePreference?: 'dark' | 'light' | 'system';
+  onToggleTheme: () => void;
+  onStartTour: () => void;
+  onOpenManual?: () => void;
+  canDownloadManual?: boolean;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+export default function Sidebar({ 
+  currentTab, 
+  onChangeTab, 
+  currentUser, 
+  onLogout, 
+  theme, 
+  onToggleTheme, themePreference = theme,
+  onStartTour,
+  onOpenManual,
+  canDownloadManual = true,
+  isMobileOpen = false,
+  onCloseMobile
+}: SidebarProps) {
+  const drawerRef = useRef<HTMLElement>(null);
+  const menuGroups = visibleNavigation(currentUser);
+
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusable = (): HTMLElement[] => drawerRef.current
+      ? Array.from(drawerRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      : [];
+    const focusFirst = () => (focusable().find(element => element.getAttribute('aria-label') === 'بستن منو') || focusable()[0])?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseMobile?.();
+      }
+      if (event.key !== 'Tab') return;
+      const items = focusable();
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    const frame = requestAnimationFrame(focusFirst);
+    document.addEventListener('keydown', onKeyDown);
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = oldOverflow;
+      previouslyFocused?.focus();
+    };
+  }, [isMobileOpen, onCloseMobile]);
+
+  const getRoleLabel = (role: UserRole) => {
+    switch (role) {
+      case 'admin': return 'مدیر منابع انسانی';
+      case 'supervisor': return 'سرپرست خط';
+      case 'employee': return 'اپراتور کارگاه';
+    }
+  };
+
+  const handleTabClick = (tabId: string) => {
+    if (tabId !== currentTab && !window.dispatchEvent(new CustomEvent('pe_navigation_request', { cancelable: true }))) return;
+    onChangeTab(tabId);
+    if (onCloseMobile) {
+      onCloseMobile();
+    }
+  };
+
+  return (
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {isMobileOpen && (
+        <button type="button" onClick={onCloseMobile} aria-label="بستن منو" className="fixed inset-0 bg-slate-950/55 backdrop-blur-sm z-40 md:hidden animate-in fade-in" />
+      )}
+
+      {/* Sidebar Container */}
+      <aside id="app-mobile-navigation" ref={drawerRef} role={isMobileOpen ? 'dialog' : undefined} aria-modal={isMobileOpen ? true : undefined} aria-label="ناوبری برنامه" className={`app-sidebar
+        fixed inset-y-0 right-0 z-50 md:static md:z-auto
+        w-[min(17.5rem,88vw)] md:w-[17.5rem] border-l flex flex-col justify-between h-dvh md:h-screen shrink-0 select-none
+        transition-all duration-300 ease-in-out
+        ${isMobileOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full md:translate-x-0'}
+        ${theme === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-800 shadow-md'}
+      `}>
+        
+        {/* Top Header & Navigation Links */}
+        <div className="p-4 flex flex-col gap-5 flex-1 min-h-0 overflow-y-auto overscroll-contain">
+          
+          {/* Clean Brand Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800/80">
+            <div 
+              onClick={() => handleTabClick(currentUser.role === 'employee' ? 'my-evaluation' : 'dashboard')}
+              className="flex items-center gap-3 cursor-pointer rounded-xl outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-teal-500"
+              title="صفحه اصلی"
+            >
+              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 dark:border-slate-700 flex items-center justify-center p-1.5 shadow-sm shrink-0">
+                <img src="/logo.svg" alt="لوگو چالاک" className="w-full h-full object-contain" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-sm font-black tracking-tight truncate">اصفهان چالاک</h1>
+                <p className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold truncate">سامانه ارزیابی عملکرد</p>
+              </div>
+            </div>
+
+            {/* Mobile Close Button */}
+            {onCloseMobile && (
+              <button
+                type="button"
+                onClick={onCloseMobile}
+                aria-label="بستن منو"
+                className="md:hidden grid min-h-10 min-w-10 place-items-center rounded-lg bg-slate-800/40 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Clean Active User Badge */}
+          <div className={`px-3.5 py-3 rounded-2xl border text-right flex items-center justify-between shadow-sm ${
+            theme === 'dark' ? 'bg-slate-950/60 border-slate-800/80' : 'bg-slate-50 border-slate-200 shadow-sm'
+          }`}>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <div className="min-w-0">
+                <span className="text-xs font-black truncate block">
+                  {currentUser.name}
+                </span>
+                <span className="text-xs text-slate-500 truncate block">
+                  {getRoleLabel(currentUser.role)}
+                </span>
+              </div>
+            </div>
+            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-400 border border-teal-500/20 shrink-0">
+              {currentUser.code}
+            </span>
+          </div>
+
+          {/* Navigation Menu */}
+          <nav aria-label="ناوبری اصلی" className="flex flex-col gap-4">
+            {menuGroups.map((group, gIdx) => {
+              const visibleItems = group.items;
+              if (visibleItems.length === 0) return null;
+
+              return (
+                <div key={group.id} data-navigation-group={group.id} data-active-group={group.items.some(item => item.id === currentTab) || undefined} className="space-y-1.5">
+                  <span className="text-[11px] font-semibold text-slate-500 px-3 py-2 block whitespace-normal break-words">
+                    {group.title}
+                  </span>
+                  <div className="space-y-0.5">
+                    {visibleItems.map(item => {
+                      const Icon = item.icon;
+                      const isActive = currentTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleTabClick(item.id)}
+                          title={item.label}
+                          aria-current={isActive ? 'page' : undefined}
+                          className={`flex min-h-11 items-center justify-between w-full px-3 py-2.5 rounded-xl text-right text-[13px] font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
+                            isActive 
+                              ? theme === 'dark'
+                                ? 'bg-teal-500/10 text-teal-200 font-bold border-r-2 border-teal-400'
+                                : 'bg-teal-50 text-teal-900 font-bold border-r-2 border-teal-600'
+                              : theme === 'dark'
+                                ? 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Icon className={`w-[1.125rem] h-[1.125rem] shrink-0 ${isActive ? 'text-teal-600 dark:text-teal-300' : 'text-slate-400'}`} />
+                            <span className="min-w-0 flex-1 whitespace-normal break-words leading-5">{item.label}</span>
+                          </div>
+                          {isActive && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal-600 dark:bg-teal-400 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </nav>
+
+        </div>
+
+        {/* Footer: Streamlined Controls */}
+        <div className={`p-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] border-t flex flex-col gap-2.5 shrink-0 ${
+          theme === 'dark' ? 'border-slate-800 bg-slate-950/70' : 'border-slate-200 bg-slate-50'
+        }`}>
+          {/* Comprehensive PDF Manual button */}
+          {onOpenManual && (
+            <button
+              type="button"
+              onClick={onOpenManual}
+              className="w-full flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-bold transition-all shadow-md shadow-teal-600/20 cursor-pointer"
+              title={canDownloadManual ? "مشاهده و دریافت کتابچه راهنمای جامع PDF" : "مشاهده آنلاین کتابچه راهنمای جامع سامانه"}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>{canDownloadManual ? "دانلود کتابچه راهنما (PDF)" : "مشاهده کتابچه راهنما (آنلاین)"}</span>
+            </button>
+          )}
+
+          {/* Interactive Tour link */}
+          <button
+            type="button"
+            onClick={onStartTour}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 text-[11px] font-bold transition-all cursor-pointer"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>راهنمای تعاملی سامانه</span>
+          </button>
+
+          {/* Theme & Logout */}
+          <div className="flex items-center justify-between pt-1">
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className={`min-h-10 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 px-2 text-xs font-bold ${
+                theme === 'dark' ? 'hover:bg-slate-800 text-amber-400' : 'hover:bg-slate-200 text-indigo-600'
+              }`}
+              title={`پوسته فعلی: ${themePreference === 'system' ? 'خودکار' : theme === 'dark' ? 'تیره' : 'روشن'}؛ برای تغییر کلیک کنید`}
+            >
+              {themePreference === 'system' ? <Monitor className="w-4 h-4" /> : theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              <span className="text-[10px] text-slate-400">{themePreference === 'system' ? 'خودکار' : theme === 'dark' ? 'روشن' : 'تیره'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onLogout}
+              className="min-h-10 rounded-lg transition-all cursor-pointer text-rose-400 hover:bg-rose-500/10 flex items-center gap-1 px-2 text-[11px] font-bold"
+              title="خروج از حساب"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>خروج</span>
+            </button>
+          </div>
+
+        </div>
+
+      </aside>
+    </>
+  );
+}
